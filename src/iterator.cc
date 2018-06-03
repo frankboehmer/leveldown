@@ -32,6 +32,7 @@ Iterator::Iterator (
   , bool keyAsBuffer
   , bool valueAsBuffer
   , size_t highWaterMark
+  , leveldb::Snapshot* snapshot
 ) : database(database)
   , id(id)
   , start(start)
@@ -53,7 +54,13 @@ Iterator::Iterator (
   options    = new leveldb::ReadOptions();
   options->fill_cache = fillCache;
   // get a snapshot of the current state
-  options->snapshot = database->NewSnapshot();
+  if (snapshot != NULL ) {
+    options->snapshot = snapshot;
+    isSharedSnapshot = true;
+  } else {
+    options->snapshot = database->NewSnapshot();
+    isSharedSnapshot = false;
+  }
   dbIterator = NULL;
   count      = 0;
   target     = NULL;
@@ -238,7 +245,9 @@ void Iterator::IteratorEnd () {
   //TODO: could return it->status()
   delete dbIterator;
   dbIterator = NULL;
-  database->ReleaseSnapshot(options->snapshot);
+  if( !isSharedSnapshot ) {
+    database->ReleaseSnapshot(options->snapshot);
+  }
 }
 
 void Iterator::Release () {
@@ -449,7 +458,10 @@ NAN_METHOD(Iterator::New) {
   //default to forward.
   bool reverse = false;
 
+  leveldb::Snapshot* snapshot = NULL;
+
   if (info.Length() > 1 && info[2]->IsObject()) {
+    printf("Iterator::new got options");
     optionsObj = v8::Local<v8::Object>::Cast(info[2]);
 
     reverse = BooleanOptionValue(optionsObj, "reverse");
@@ -584,6 +596,15 @@ NAN_METHOD(Iterator::New) {
       }
     }
 
+    if (optionsObj->Has(Nan::New("databaseSnapshot").ToLocalChecked())) {
+
+      printf("Iterator::new got option: databaseSnapshot");
+
+      v8::Local<v8::Value> databaseSnapshotHandle = optionsObj->Get(Nan::New("databaseSnapshot").ToLocalChecked());
+      DatabaseSnapshot* databaseSnapshot = Nan::ObjectWrap::Unwrap<DatabaseSnapshot>(databaseSnapshotHandle->ToObject());
+      snapshot = databaseSnapshot->GetSnapshot();
+    }
+
   }
 
   bool keys = BooleanOptionValue(optionsObj, "keys", true);
@@ -609,6 +630,7 @@ NAN_METHOD(Iterator::New) {
     , keyAsBuffer
     , valueAsBuffer
     , highWaterMark
+    , snapshot
   );
   iterator->Wrap(info.This());
 

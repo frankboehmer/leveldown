@@ -17,6 +17,7 @@
 
 #include "leveldown.h"
 #include "iterator.h"
+#include "database_snapshot.h"
 
 namespace leveldown {
 
@@ -75,6 +76,7 @@ public:
   void ReleaseSnapshot (const leveldb::Snapshot* snapshot);
   void CloseDatabase ();
   void ReleaseIterator (uint32_t id);
+  void ReleaseDatabaseSnapshot (uint32_t id);
 
   Database (const v8::Local<v8::Value>& from);
   ~Database ();
@@ -83,11 +85,13 @@ private:
   Nan::Utf8String* location;
   leveldb::DB* db;
   uint32_t currentIteratorId;
+  uint32_t currentDatabaseSnapshotId;
   void(*pendingCloseWorker);
   leveldb::Cache* blockCache;
   const leveldb::FilterPolicy* filterPolicy;
 
   std::map< uint32_t, leveldown::Iterator * > iterators;
+  std::map< uint32_t, leveldown::DatabaseSnapshot * > databaseSnapshots;
 
   static void WriteDoing(uv_work_t *req);
   static void WriteAfter(uv_work_t *req);
@@ -104,6 +108,10 @@ private:
   static NAN_METHOD(ApproximateSize);
   static NAN_METHOD(CompactRange);
   static NAN_METHOD(GetProperty);
+  static NAN_METHOD(GetSync);
+  static NAN_METHOD(PutSync);
+  static NAN_METHOD(DeleteSync);
+  static NAN_METHOD(DatabaseSnapshot);
 };
 
 } // namespace leveldown

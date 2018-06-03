@@ -12,12 +12,14 @@
 
 #include "leveldown.h"
 #include "database.h"
+#include "database_snapshot.h"
 #include "async.h"
 
 namespace leveldown {
 
 class Database;
 class AsyncWorker;
+class DatabaseSnapshot;
 
 class Iterator : public Nan::ObjectWrap {
 public:
@@ -45,6 +47,7 @@ public:
     , bool keyAsBuffer
     , bool valueAsBuffer
     , size_t highWaterMark
+    , leveldb::Snapshot* snapshot
   );
 
   ~Iterator ();
@@ -75,6 +78,7 @@ private:
   std::string* gte;
   int count;
   size_t highWaterMark;
+  bool isSharedSnapshot;
 
 public:
   bool keyAsBuffer;

@@ -3,6 +3,7 @@ const AbstractLevelDOWN = require('abstract-leveldown').AbstractLevelDOWN
 const binding = require('bindings')('leveldown').leveldown
 const ChainedBatch = require('./chained-batch')
 const Iterator = require('./iterator')
+const Snapshot = require('./snapshot')
 
 function LevelDOWN (location) {
   if (!(this instanceof LevelDOWN)) {
@@ -75,6 +76,22 @@ LevelDOWN.prototype.getProperty = function (property) {
 
 LevelDOWN.prototype._iterator = function (options) {
   return new Iterator(this, options)
+}
+
+LevelDOWN.prototype.getSync = function (key) {
+  return this.binding.getSync(key);
+}
+
+LevelDOWN.prototype.putSync = function (key, value) {
+  return this.binding.putSync(key, value);
+}
+
+LevelDOWN.prototype.deleteSync = function (key) {
+  return this.binding.deleteSync(key);
+}
+
+LevelDOWN.prototype.snapshot = function (options) {
+  return new Snapshot(this, options);
 }
 
 LevelDOWN.destroy = function (location, callback) {

@@ -50,6 +50,7 @@
           , "src/database_async.cc"
           , "src/iterator.cc"
           , "src/iterator_async.cc"
+          , "src/database_snapshot.cc"
           , "src/leveldown.cc"
           , "src/leveldown_async.cc"
         ]

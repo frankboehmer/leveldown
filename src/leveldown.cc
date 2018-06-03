@@ -9,6 +9,7 @@
 #include "database.h"
 #include "iterator.h"
 #include "batch.h"
+#include "database_snapshot.h"
 #include "leveldown_async.h"
 
 namespace leveldown {
@@ -53,6 +54,7 @@ void Init (v8::Local<v8::Object> target) {
   Database::Init();
   leveldown::Iterator::Init();
   leveldown::Batch::Init();
+  leveldown::DatabaseSnapshot::Init();
 
   v8::Local<v8::Function> leveldown =
       Nan::New<v8::FunctionTemplate>(LevelDOWN)->GetFunction();

@@ -25,6 +25,7 @@ Database::Database (const v8::Local<v8::Value>& from)
   : location(new Nan::Utf8String(from))
   , db(NULL)
   , currentIteratorId(0)
+  , currentDatabaseSnapshotId(0)
   , pendingCloseWorker(NULL)
   , blockCache(NULL)
   , filterPolicy(NULL) {};
@@ -151,6 +152,9 @@ void Database::Init () {
   Nan::SetPrototypeMethod(tpl, "compactRange", Database::CompactRange);
   Nan::SetPrototypeMethod(tpl, "getProperty", Database::GetProperty);
   Nan::SetPrototypeMethod(tpl, "iterator", Database::Iterator);
+  Nan::SetPrototypeMethod(tpl, "getSync", Database::GetSync);
+  Nan::SetPrototypeMethod(tpl, "putSync", Database::PutSync);
+  Nan::SetPrototypeMethod(tpl, "databaseSnapshot", Database::DatabaseSnapshot);
 }
 
 NAN_METHOD(Database::New) {
@@ -515,5 +519,114 @@ NAN_METHOD(Database::Iterator) {
   info.GetReturnValue().Set(iteratorHandle);
 }
 
+NAN_METHOD(Database::GetSync) {
+
+  if (info.Length() != 1)                                                      \
+    return Nan::ThrowError("getSync() requires a single argument: key");
+
+  leveldown::Database* database =
+    Nan::ObjectWrap::Unwrap<leveldown::Database>(info.This());
+
+  v8::Local<v8::Object> keyHandle = info[0].As<v8::Object>();
+  LD_STRING_OR_BUFFER_TO_SLICE(key, keyHandle, key);
+
+  leveldb::ReadOptions options;
+  options.fill_cache = true;
+
+  std::string value;
+  leveldb::Status status = database->GetFromDatabase(&options, key, value);
+
+  DisposeStringOrBufferFromSlice(keyHandle, key);
+
+  if (!status.ok())
+    return Nan::ThrowError(status.ToString().c_str());
+
+  v8::Local<v8::Value> returnValue
+    = Nan::New<v8::String>((char*)value.data(), value.size()).ToLocalChecked();
+  
+  info.GetReturnValue().Set(returnValue);
+}
+
+NAN_METHOD(Database::PutSync) {
+
+  if (info.Length() != 2)                                                      \
+    return Nan::ThrowError("putSync() requires two arguments: key, value");
+
+  leveldown::Database* database =
+    Nan::ObjectWrap::Unwrap<leveldown::Database>(info.This());
+
+  v8::Local<v8::Object> keyHandle = info[0].As<v8::Object>();
+  LD_STRING_OR_BUFFER_TO_SLICE(key, keyHandle, key);
+
+  v8::Local<v8::Object> valueHandle = info[1].As<v8::Object>();
+  LD_STRING_OR_BUFFER_TO_SLICE(value, valueHandle, value);
+
+  leveldb::WriteOptions options;
+
+  leveldb::Status status = database->PutToDatabase(&options, key, value);
+
+  DisposeStringOrBufferFromSlice(keyHandle, key);
+  DisposeStringOrBufferFromSlice(valueHandle, value);
+
+  if (!status.ok())
+    return Nan::ThrowError(status.ToString().c_str());
+}
+
+NAN_METHOD(Database::DeleteSync) {
+
+  if (info.Length() != 1)                                                      \
+    return Nan::ThrowError("deleteSync() requires one argument: key");
+
+  leveldown::Database* database =
+    Nan::ObjectWrap::Unwrap<leveldown::Database>(info.This());
+
+  v8::Local<v8::Object> keyHandle = info[0].As<v8::Object>();
+  LD_STRING_OR_BUFFER_TO_SLICE(key, keyHandle, key);
+
+  leveldb::WriteOptions options;
+
+  leveldb::Status status = database->DeleteFromDatabase(&options, key);
+
+  DisposeStringOrBufferFromSlice(keyHandle, key);
+
+  if (!status.ok())
+    return Nan::ThrowError(status.ToString().c_str());
+}
+
+NAN_METHOD(Database::DatabaseSnapshot) {
+
+  Database* database = Nan::ObjectWrap::Unwrap<Database>(info.This());
+
+  v8::Local<v8::Object> optionsObj;
+  if (info.Length() > 0 && info[0]->IsObject()) {
+    optionsObj = v8::Local<v8::Object>::Cast(info[0]);
+  }
+
+  // each databaseSnapshot gets a unique id for this Database, so we can
+  // easily store & lookup on our `iterators` map
+  uint32_t id = database->currentDatabaseSnapshotId++;
+  Nan::TryCatch try_catch;
+  v8::Local<v8::Object> databaseSnapshotHandle = DatabaseSnapshot::NewInstance(
+      info.This()
+    , Nan::New<v8::Number>(id)
+    , optionsObj
+  );
+  if (try_catch.HasCaught()) {
+    // NB: node::FatalException can segfault here if there is no room on stack.
+    return Nan::ThrowError("Fatal Error in Database::DatabaseSnapshot!");
+  }
+
+  leveldown::DatabaseSnapshot *databaseSnapshot =
+      Nan::ObjectWrap::Unwrap<leveldown::DatabaseSnapshot>(databaseSnapshotHandle);
+
+  database->databaseSnapshots[id] = databaseSnapshot;
+
+  info.GetReturnValue().Set(databaseSnapshotHandle);
+}
+
+
+void Database::ReleaseDatabaseSnapshot (uint32_t id) {
+  databaseSnapshots.erase(id);
+}
 
 } // namespace leveldown
