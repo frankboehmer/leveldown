@@ -1,9 +1,9 @@
-const util = require('util')
-const AbstractIterator = require('abstract-leveldown').AbstractIterator
 const fastFuture = require('fast-future')
 
 function Iterator (db, options) {
-  AbstractIterator.call(this, db)
+  this.db = db
+  this._ended = false
+  this._nexting = false
 
   this.binding = db.binding.iterator(options)
   this.cache = null
@@ -11,7 +11,31 @@ function Iterator (db, options) {
   this.fastFuture = fastFuture()
 }
 
-util.inherits(Iterator, AbstractIterator)
+Iterator.prototype.next = function (callback) {
+  var self = this
+
+  if (typeof callback !== 'function') {
+    throw new Error('next() requires a callback argument')
+  }
+
+  if (self._ended) {
+    process.nextTick(callback, new Error('cannot call next() after end()'))
+    return self
+  }
+
+  if (self._nexting) {
+    process.nextTick(callback, new Error('cannot call next() before previous next() has completed'))
+    return self
+  }
+
+  self._nexting = true
+  self._next(function () {
+    self._nexting = false
+    callback.apply(null, arguments)
+  })
+
+  return self
+}
 
 Iterator.prototype.seek = function (target) {
   if (this._ended) {
@@ -38,11 +62,11 @@ Iterator.prototype._next = function (callback) {
   var value
 
   if (this.cache && this.cache.length) {
-    key = this.cache.pop()
-    value = this.cache.pop()
+    key = that.db._deserializeKey(this.cache.pop())
+    value = that.db._deserializeValue(this.cache.pop())
 
     this.fastFuture(function () {
-      callback(null, key, value)
+      callback(null, key, value);
     })
   } else if (this.finished) {
     this.fastFuture(function () {
@@ -59,6 +83,19 @@ Iterator.prototype._next = function (callback) {
   }
 
   return this
+}
+
+Iterator.prototype.end = function (callback) {
+  if (typeof callback !== 'function') {
+    throw new Error('end() requires a callback argument')
+  }
+
+  if (this._ended) {
+    return process.nextTick(callback, new Error('end() already called on iterator'))
+  }
+
+  this._ended = true
+  this._end(callback)
 }
 
 Iterator.prototype._end = function (callback) {

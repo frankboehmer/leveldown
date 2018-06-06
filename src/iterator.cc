@@ -597,9 +597,6 @@ NAN_METHOD(Iterator::New) {
     }
 
     if (optionsObj->Has(Nan::New("databaseSnapshot").ToLocalChecked())) {
-
-      printf("Iterator::new got option: databaseSnapshot");
-
       v8::Local<v8::Value> databaseSnapshotHandle = optionsObj->Get(Nan::New("databaseSnapshot").ToLocalChecked());
       DatabaseSnapshot* databaseSnapshot = Nan::ObjectWrap::Unwrap<DatabaseSnapshot>(databaseSnapshotHandle->ToObject());
       snapshot = databaseSnapshot->GetSnapshot();

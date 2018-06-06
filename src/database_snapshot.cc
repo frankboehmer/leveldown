@@ -7,6 +7,7 @@
 #include <node_buffer.h>
 
 #include "database.h"
+#include "database_async.h"
 #include "database_snapshot.h"
 #include "common.h"
 
@@ -45,6 +46,41 @@ leveldb::Snapshot* DatabaseSnapshot::GetSnapshot() {
   return (leveldb::Snapshot*)options->snapshot;
 };
 
+NAN_METHOD(DatabaseSnapshot::Close) {
+  leveldown::DatabaseSnapshot* databaseSnapshot =
+    Nan::ObjectWrap::Unwrap<leveldown::DatabaseSnapshot>(info.This());
+  databaseSnapshot->Release();
+}
+
+NAN_METHOD(DatabaseSnapshot::Get) {
+  LD_METHOD_SETUP_COMMON(get, 1, 2)
+
+  leveldown::DatabaseSnapshot* databaseSnapshot =
+      Nan::ObjectWrap::Unwrap<leveldown::DatabaseSnapshot>(info.This());
+
+  v8::Local<v8::Object> keyHandle = info[0].As<v8::Object>();
+  LD_STRING_OR_BUFFER_TO_SLICE(key, keyHandle, key);
+
+  bool asBuffer = BooleanOptionValue(optionsObj, "asBuffer", true);
+  bool fillCache = BooleanOptionValue(optionsObj, "fillCache", true);
+
+  ReadWorker* worker = new ReadWorker(
+      database
+    , new Nan::Callback(callback)
+    , key
+    , asBuffer
+    , fillCache
+    , keyHandle
+    , databaseSnapshot->GetSnapshot()
+  );
+  // TODO !!!
+  // how do we get the V8 handle for our database reference?
+  // persist to prevent accidental GC
+  // v8::Local<v8::Object> _this = info.This();
+  // worker->SaveToPersistent("database", _this);
+  Nan::AsyncQueueWorker(worker);
+}
+
 NAN_METHOD(DatabaseSnapshot::GetSync) {
 
   if (info.Length() != 1)                                                      \
@@ -73,10 +109,6 @@ NAN_METHOD(DatabaseSnapshot::GetSync) {
   info.GetReturnValue().Set(returnValue);
 }
 
-NAN_METHOD(DatabaseSnapshot::Iterator) {
-
-}
-
 void DatabaseSnapshot::Init () {
   v8::Local<v8::FunctionTemplate> tpl =
       Nan::New<v8::FunctionTemplate>(DatabaseSnapshot::New);
@@ -84,8 +116,9 @@ void DatabaseSnapshot::Init () {
   tpl->SetClassName(Nan::New("DatabaseSnapshot").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
+  Nan::SetPrototypeMethod(tpl, "close", DatabaseSnapshot::Close);
+  Nan::SetPrototypeMethod(tpl, "get", DatabaseSnapshot::Get);
   Nan::SetPrototypeMethod(tpl, "getSync", DatabaseSnapshot::GetSync);
-  Nan::SetPrototypeMethod(tpl, "iterator", DatabaseSnapshot::Iterator);
 }
 
 v8::Local<v8::Object> DatabaseSnapshot::NewInstance (

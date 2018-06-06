@@ -1,25 +1,26 @@
-function ChainedBatch (db) {
+/* Copyright (c) 2017 Rod Vagg, MIT License */
+
+function AbstractChainedBatch (db) {
   this._db = db
   this._operations = []
   this._written = false
-  this.binding = db.binding.batch()
 }
 
-ChainedBatch.prototype._serializeKey = function (key) {
+AbstractChainedBatch.prototype._serializeKey = function (key) {
   return this._db._serializeKey(key)
 }
 
-ChainedBatch.prototype._serializeValue = function (value) {
+AbstractChainedBatch.prototype._serializeValue = function (value) {
   return this._db._serializeValue(value)
 }
 
-ChainedBatch.prototype._checkWritten = function () {
+AbstractChainedBatch.prototype._checkWritten = function () {
   if (this._written) {
     throw new Error('write() already called on this batch')
   }
 }
 
-ChainedBatch.prototype.put = function (key, value) {
+AbstractChainedBatch.prototype.put = function (key, value) {
   this._checkWritten()
 
   var err = this._db._checkKey(key, 'key')
@@ -33,11 +34,11 @@ ChainedBatch.prototype.put = function (key, value) {
   return this
 }
 
-ChainedBatch.prototype._put = function (key, value) {
-  this.binding.put(key, value)
+AbstractChainedBatch.prototype._put = function (key, value) {
+  this._operations.push({ type: 'put', key: key, value: value })
 }
 
-ChainedBatch.prototype.del = function (key) {
+AbstractChainedBatch.prototype.del = function (key) {
   this._checkWritten()
 
   var err = this._db._checkKey(key, 'key')
@@ -49,11 +50,11 @@ ChainedBatch.prototype.del = function (key) {
   return this
 }
 
-ChainedBatch.prototype._del = function (key) {
-  this.binding.del(key)
+AbstractChainedBatch.prototype._del = function (key) {
+  this._operations.push({ type: 'del', key: key })
 }
 
-ChainedBatch.prototype.clear = function () {
+AbstractChainedBatch.prototype.clear = function () {
   this._checkWritten()
   this._operations = []
   this._clear()
@@ -61,11 +62,9 @@ ChainedBatch.prototype.clear = function () {
   return this
 }
 
-ChainedBatch.prototype._clear = function (key) {
-  this.binding.clear(key)
-}
+AbstractChainedBatch.prototype._clear = function noop () {}
 
-ChainedBatch.prototype.write = function (options, callback) {
+AbstractChainedBatch.prototype.write = function (options, callback) {
   this._checkWritten()
 
   if (typeof options === 'function') { callback = options }
@@ -86,8 +85,4 @@ ChainedBatch.prototype.write = function (options, callback) {
   process.nextTick(callback)
 }
 
-ChainedBatch.prototype._write = function (options, callback) {
-  this.binding.write(options, callback)
-}
-
-module.exports = ChainedBatch
+module.exports = AbstractChainedBatch

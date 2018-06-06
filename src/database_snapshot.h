@@ -53,8 +53,9 @@ private:
   bool GetDatabaseSnapshot ();
   
   static NAN_METHOD(New);
+  static NAN_METHOD(Close);
+  static NAN_METHOD(Get);
   static NAN_METHOD(GetSync);
-  static NAN_METHOD(Iterator);
 };
 
 } // namespace leveldown

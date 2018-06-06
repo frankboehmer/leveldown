@@ -1,28 +1,64 @@
-const extend = require('xtend'),
-	  IteratorStream = require('level-iterator-stream');
+const extend = require('xtend')
 
-const Iterator = require('./iterator');
+const AbstractLevelDOWN = require('./abstract-leveldown')
+const Iterator = require('./iterator')
+const IteratorStream = require('./iterator-stream')
 
 function Snapshot (db, options) {
-  this.db = db;
+  this.db = db
   this.binding = db.binding.databaseSnapshot(options)
+  this._lockCounter = 1
+}
+
+Snapshot.prototype.get = AbstractLevelDOWN.prototype.get
+Snapshot.prototype.iterator = AbstractLevelDOWN.prototype.iterator
+Snapshot.prototype._setupIteratorOptions = AbstractLevelDOWN.prototype._setupIteratorOptions
+Snapshot.prototype._serializeKey = AbstractLevelDOWN.prototype._serializeKey
+Snapshot.prototype._serializeValue = AbstractLevelDOWN.prototype._serializeValue
+Snapshot.prototype._checkKey = AbstractLevelDOWN.prototype._checkKey
+
+Snapshot.prototype.begin = function () {
+  if (this._lockCounter === 0) throw new Error('Snapshot already closed.')
+  this._lockCounter++
+}
+
+Snapshot.prototype.end = function () {
+  if (this._lockCounter === 0) throw new Error('Inconsistent calls to Snapshot._lock() / Snapshot._unlock().')
+  this._lockCounter--
+  if (this._lockCounter === 0) {
+    this.binding.close()
+  }
+}
+
+Snapshot.prototype._get = function (key, options, callback) {
+  if (this._lockCounter === 0) return setImmediate(callback, new Error('Snapshot already closed.'))
+  return this.binding.get(key, options, callback)
 }
 
 Snapshot.prototype.getSync = function (key) {
-  return this.binding.getSync(key);
+  if (this._lockCounter === 0) throw new Error('Snapshot already closed.')
+  return this.binding.getSync(key)
 }
 
-Snapshot.prototype.iterator = function (options) {
-  options = this.db._setupIteratorOptions(options);
-   console.log(JSON.stringify(options));
+Snapshot.prototype._iterator = function (options) {
+  this.begin()
   options = extend({ databaseSnapshot: this.binding }, options)
-  return new Iterator(this.db, options);
+  const iterator = new Iterator(this.db, options)
+  iterator._snapshot = this
+  iterator._end = endIterator
+  return iterator
 }
 
-Snapshot.prototype.createReadStream = function(options) {
+Snapshot.prototype.createReadStream = function (options) {
+  if (this._lockCounter === 0) throw new Error('Snapshot already closed.')
   options = extend({ keys: true, values: true }, options)
   if (typeof options.limit !== 'number') { options.limit = -1 }
   return new IteratorStream(this.iterator(options), options)
+}
+
+function endIterator (callback) {
+  this._snapshot.end()
+  Iterator.prototype._end.call(this, callback)
 }
 
 module.exports = Snapshot

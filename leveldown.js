@@ -1,16 +1,20 @@
 const util = require('util')
-const AbstractLevelDOWN = require('abstract-leveldown').AbstractLevelDOWN
+const AbstractLevelDOWN = require('./abstract-leveldown')
+const xtend = require('xtend')
 const binding = require('bindings')('leveldown').leveldown
 const ChainedBatch = require('./chained-batch')
 const Iterator = require('./iterator')
 const Snapshot = require('./snapshot')
 
-function LevelDOWN (location) {
+const rangeOptions = 'start end gt gte lt lte'.split(' ')
+
+function LevelDOWN (location, options) {
   if (!(this instanceof LevelDOWN)) {
-    return new LevelDOWN(location)
+    return new LevelDOWN(location, options)
   }
 
-  AbstractLevelDOWN.call(this, location)
+  AbstractLevelDOWN.call(this, location, options)
+  
   this.binding = binding(location)
 }
 
@@ -31,6 +35,7 @@ LevelDOWN.prototype._put = function (key, value, options, callback) {
 LevelDOWN.prototype._get = function (key, options, callback) {
   this.binding.get(key, options, callback)
 }
+
 
 LevelDOWN.prototype._del = function (key, options, callback) {
   this.binding.del(key, options, callback)
@@ -78,20 +83,21 @@ LevelDOWN.prototype._iterator = function (options) {
   return new Iterator(this, options)
 }
 
+
 LevelDOWN.prototype.getSync = function (key) {
-  return this.binding.getSync(key);
+  return this.binding.getSync(key)
 }
 
 LevelDOWN.prototype.putSync = function (key, value) {
-  return this.binding.putSync(key, value);
+  return this.binding.putSync(key, value)
 }
 
 LevelDOWN.prototype.deleteSync = function (key) {
-  return this.binding.deleteSync(key);
+  return this.binding.deleteSync(key)
 }
 
 LevelDOWN.prototype.snapshot = function (options) {
-  return new Snapshot(this, options);
+  return new Snapshot(this, options)
 }
 
 LevelDOWN.destroy = function (location, callback) {

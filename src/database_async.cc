@@ -100,7 +100,8 @@ ReadWorker::ReadWorker(Database *database,
                        leveldb::Slice key,
                        bool asBuffer,
                        bool fillCache,
-                       v8::Local<v8::Object> &keyHandle)
+                       v8::Local<v8::Object> &keyHandle,
+                       const leveldb::Snapshot *snapshot)
   : IOWorker(database, callback, "leveldown:db.get", key, keyHandle),
     asBuffer(asBuffer)
 {
@@ -108,6 +109,9 @@ ReadWorker::ReadWorker(Database *database,
 
   options = new leveldb::ReadOptions();
   options->fill_cache = fillCache;
+  if (snapshot != NULL) {
+    options->snapshot = snapshot;
+  }
   SaveToPersistent("key", keyHandle);
 };
 

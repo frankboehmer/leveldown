@@ -68,7 +68,8 @@ public:
              leveldb::Slice key,
              bool asBuffer,
              bool fillCache,
-             v8::Local<v8::Object> &keyHandle);
+             v8::Local<v8::Object> &keyHandle,
+             const leveldb::Snapshot *snapshot);
 
   virtual ~ReadWorker();
   virtual void Execute();

@@ -321,6 +321,7 @@ NAN_METHOD(Database::Get) {
     , asBuffer
     , fillCache
     , keyHandle
+    , NULL
   );
   // persist to prevent accidental GC
   v8::Local<v8::Object> _this = info.This();
