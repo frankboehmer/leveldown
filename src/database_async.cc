@@ -124,6 +124,7 @@ void ReadWorker::Execute() {
 }
 
 void ReadWorker::HandleOKCallback() {
+
   Nan::HandleScope scope;
 
   v8::Local<v8::Value> returnValue;

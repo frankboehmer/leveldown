@@ -108,7 +108,15 @@ AbstractLevelDOWN.prototype.get = function (key, options, callback) {
 
   const self = this;
   this._get(key, options, (err, value) => {
-    callback(err, value != null ? self._deserializeValue(value) : value);
+    if(err) {
+      if ((/notfound/i).test(err) || err.notFound) {
+        callback({name:'NotFoundError'});
+      } else {
+        callback(err);
+      }
+    } else {
+      callback(err, value != null ? self._deserializeValue(value) : value);
+    }
   })
 }
 
@@ -284,6 +292,16 @@ AbstractLevelDOWN.prototype._checkKey = function (obj, type) {
 
 AbstractLevelDOWN.prototype.createReadStream = function (options) {
   const iterator = this.iterator(options);
+  return new IteratorStream(iterator, options)
+}
+
+AbstractLevelDOWN.prototype.createKeyStream = function (options) {
+  const iterator = this.iterator(xtend({values:false}, options));
+  return new IteratorStream(iterator, options)
+}
+
+AbstractLevelDOWN.prototype.createValueStream = function (options) {
+  const iterator = this.iterator(xtend({keys:false}, options));
   return new IteratorStream(iterator, options)
 }
 

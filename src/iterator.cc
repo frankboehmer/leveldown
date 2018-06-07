@@ -461,7 +461,6 @@ NAN_METHOD(Iterator::New) {
   leveldb::Snapshot* snapshot = NULL;
 
   if (info.Length() > 1 && info[2]->IsObject()) {
-    printf("Iterator::new got options");
     optionsObj = v8::Local<v8::Object>::Cast(info[2]);
 
     reverse = BooleanOptionValue(optionsObj, "reverse");

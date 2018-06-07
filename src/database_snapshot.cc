@@ -53,7 +53,6 @@ NAN_METHOD(DatabaseSnapshot::Close) {
 }
 
 NAN_METHOD(DatabaseSnapshot::Get) {
-  LD_METHOD_SETUP_COMMON(get, 1, 2)
 
   leveldown::DatabaseSnapshot* databaseSnapshot =
       Nan::ObjectWrap::Unwrap<leveldown::DatabaseSnapshot>(info.This());
@@ -61,11 +60,14 @@ NAN_METHOD(DatabaseSnapshot::Get) {
   v8::Local<v8::Object> keyHandle = info[0].As<v8::Object>();
   LD_STRING_OR_BUFFER_TO_SLICE(key, keyHandle, key);
 
+  v8::Local<v8::Object> optionsObj = info[1].As<v8::Object>();
+  v8::Local<v8::Function> callback = info[2].As<v8::Function>();
+
   bool asBuffer = BooleanOptionValue(optionsObj, "asBuffer", true);
   bool fillCache = BooleanOptionValue(optionsObj, "fillCache", true);
 
   ReadWorker* worker = new ReadWorker(
-      database
+      databaseSnapshot->database
     , new Nan::Callback(callback)
     , key
     , asBuffer
@@ -73,6 +75,7 @@ NAN_METHOD(DatabaseSnapshot::Get) {
     , keyHandle
     , databaseSnapshot->GetSnapshot()
   );
+
   // TODO !!!
   // how do we get the V8 handle for our database reference?
   // persist to prevent accidental GC
