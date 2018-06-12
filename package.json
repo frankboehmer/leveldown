@@ -1,5 +1,5 @@
 {
-  "name": "leveldown",
+  "name": "@ninox/leveldown",
   "description": "A low-level Node.js LevelDB binding",
   "version": "4.0.1",
   "contributors": [
@@ -23,7 +23,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/level/leveldown.git"
+    "url": "git@github.com:frankboehmer/leveldown.git"
   },
   "homepage": "https://github.com/level/leveldown",
   "keywords": [
