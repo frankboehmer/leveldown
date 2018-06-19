@@ -1,4 +1,4 @@
-const extend = require('xtend')
+const xtend = require('xtend')
 
 const AbstractLevelDOWN = require('./abstract-leveldown')
 const Iterator = require('./iterator')
@@ -59,7 +59,7 @@ Snapshot.prototype.getSync = function (key) {
 
 Snapshot.prototype._iterator = function (options) {
   this.begin()
-  options = extend({ databaseSnapshot: this.binding }, options)
+  options = xtend({ databaseSnapshot: this.binding }, options)
   const iterator = new Iterator(this.db, options)
   iterator._snapshot = this
   iterator._end = endIterator
@@ -68,21 +68,21 @@ Snapshot.prototype._iterator = function (options) {
 
 Snapshot.prototype.createReadStream = function (options) {
   if (this._lockCounter === 0) throw new Error('Snapshot already closed.')
-  options = extend({ keys: true, values: true }, options)
+  options = xtend({ keys: true, values: true }, options)
   if (typeof options.limit !== 'number') { options.limit = -1 }
   return new IteratorStream(this.iterator(options), options)
 }
 
 Snapshot.prototype.createKeyStream = function (options) {
   if (this._lockCounter === 0) throw new Error('Snapshot already closed.')
-  options = extend({ keys: true, values: false }, options)
+  options = xtend({ keys: true, values: false }, options)
   if (typeof options.limit !== 'number') { options.limit = -1 }
   return new IteratorStream(this.iterator(options), options)
 }
 
 Snapshot.prototype.createValueStream = function (options) {
   if (this._lockCounter === 0) throw new Error('Snapshot already closed.')
-  options = extend({ keys: false, values: true }, options)
+  options = xtend({ keys: false, values: true }, options)
   if (typeof options.limit !== 'number') { options.limit = -1 }
   return new IteratorStream(this.iterator(options), options)
 }

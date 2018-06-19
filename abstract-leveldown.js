@@ -291,18 +291,27 @@ AbstractLevelDOWN.prototype._checkKey = function (obj, type) {
 }
 
 AbstractLevelDOWN.prototype.createReadStream = function (options) {
-  const iterator = this.iterator(options);
-  return new IteratorStream(iterator, options)
+  options = xtend({ keys: true, values: true }, options)
+  if (typeof options.limit !== 'number') { options.limit = -1 }
+  return new IteratorStream(this.iterator(options), options)
+  /*const iterator = this.iterator(options);
+  return new IteratorStream(iterator, options)*/
 }
 
 AbstractLevelDOWN.prototype.createKeyStream = function (options) {
-  const iterator = this.iterator(xtend({values:false}, options));
-  return new IteratorStream(iterator, options)
+  options = xtend({ keys: true, values: false }, options)
+  if (typeof options.limit !== 'number') { options.limit = -1 }
+  return new IteratorStream(this.iterator(options), options)
+  /*const iterator = this.iterator(xtend({keys:true, values:false}, options));
+  return new IteratorStream(iterator, options)*/
 }
 
 AbstractLevelDOWN.prototype.createValueStream = function (options) {
-  const iterator = this.iterator(xtend({keys:false}, options));
-  return new IteratorStream(iterator, options)
+  options = xtend({ keys: false, values: true }, options)
+  if (typeof options.limit !== 'number') { options.limit = -1 }
+  return new IteratorStream(this.iterator(options), options)
+  /*const iterator = this.iterator(xtend({keys:false, values:true}, options));
+  return new IteratorStream(iterator, options)*/
 }
 
 function serializeStringOrBuffer(value) {
