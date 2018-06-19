@@ -5,12 +5,12 @@ It also re-integrates LevelUP.
 
 Usage:
 <code>
-const db = level(path, {valueEncoding:json};
-db.open(err => {
-  const snap = db.snapshot();
-  snap.get('key', (err, val) => {
-    snap.close();
-  });
+const db = level(path, {valueEncoding:json};<b>
+db.open(err => {<b>
+  const snap = db.snapshot();<b>
+  snap.get('key', (err, val) => {<b>
+    snap.close();<b>
+  });<b>
 })
 </code>
 
