@@ -1,3 +1,19 @@
+# Fork from leveldown
+
+This is a fork from leveldown, it exposes the snapshot feature of leveldb to JavaScript.
+It also re-integrates LevelUP.
+
+Usage:
+<code>
+const db = level(path, {valueEncoding:json};
+db.open(err => {
+  const snap = db.snapshot();
+  snap.get('key', (err, val) => {
+    snap.close();
+  });
+})
+</code>
+
 # leveldown
 
 [![level badge][level-badge]](https://github.com/level/awesome)
